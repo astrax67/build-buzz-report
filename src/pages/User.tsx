@@ -23,7 +23,7 @@ const User = () => {
 
   const categories = [
     "Maintenance",
-    "Plumbing",
+    "Plumbing", 
     "Electrical",
     "Noise Complaint",
     "Security",
@@ -63,7 +63,7 @@ const User = () => {
       setIsSubmitted(true);
       
       toast({
-        title: "Complaint Submitted",
+        title: "Success!",
         description: "Your complaint has been submitted successfully. You will be notified of updates.",
       });
     }, 1500);
@@ -71,6 +71,11 @@ const User = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const resetForm = () => {
+    setIsSubmitted(false);
+    setFormData({ name: "", buildingCode: "", category: "", complaint: "" });
   };
 
   if (isSubmitted) {
@@ -92,11 +97,8 @@ const User = () => {
             </p>
             <div className="space-y-2">
               <Button 
-                onClick={() => {
-                  setIsSubmitted(false);
-                  setFormData({ name: "", buildingCode: "", category: "", complaint: "" });
-                }}
-                className="w-full"
+                onClick={resetForm}
+                className="w-full bg-complaints-600 hover:bg-complaints-700"
               >
                 Submit Another Complaint
               </Button>
@@ -118,7 +120,7 @@ const User = () => {
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-4 mb-8">
             <Link to="/">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="hover:bg-gray-50">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
               </Button>
@@ -126,9 +128,9 @@ const User = () => {
             <h1 className="text-3xl font-bold text-gray-900">Submit Complaint</h1>
           </div>
 
-          <Card className="animate-fade-in">
+          <Card className="animate-fade-in shadow-lg">
             <CardHeader>
-              <CardTitle>Complaint Form</CardTitle>
+              <CardTitle className="text-xl">Complaint Form</CardTitle>
               <CardDescription>
                 Please fill in all the required information to submit your complaint
               </CardDescription>
@@ -136,25 +138,27 @@ const User = () => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label htmlFor="name" className="text-sm font-medium">Full Name *</Label>
                   <Input
                     id="name"
                     type="text"
                     placeholder="Enter your full name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="focus:ring-2 focus:ring-complaints-500"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="buildingCode">Building Code *</Label>
+                  <Label htmlFor="buildingCode" className="text-sm font-medium">Building Code *</Label>
                   <Input
                     id="buildingCode"
                     type="text"
                     placeholder="e.g., HR 307"
                     value={formData.buildingCode}
                     onChange={(e) => handleInputChange('buildingCode', e.target.value)}
+                    className="focus:ring-2 focus:ring-complaints-500"
                     required
                   />
                   <p className="text-xs text-gray-500">
@@ -163,14 +167,18 @@ const User = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Complaint Category *</Label>
+                  <Label htmlFor="category" className="text-sm font-medium">Complaint Category *</Label>
                   <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="focus:ring-2 focus:ring-complaints-500">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border shadow-lg">
+                    <SelectContent className="bg-white border shadow-lg z-50">
                       {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
+                        <SelectItem 
+                          key={category} 
+                          value={category}
+                          className="hover:bg-gray-100 cursor-pointer"
+                        >
                           {category}
                         </SelectItem>
                       ))}
@@ -179,12 +187,13 @@ const User = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="complaint">Complaint Details *</Label>
+                  <Label htmlFor="complaint" className="text-sm font-medium">Complaint Details *</Label>
                   <Textarea
                     id="complaint"
                     placeholder="Please describe your complaint in detail..."
                     value={formData.complaint}
                     onChange={(e) => handleInputChange('complaint', e.target.value)}
+                    className="focus:ring-2 focus:ring-complaints-500 min-h-[120px]"
                     rows={5}
                     required
                   />
@@ -192,7 +201,7 @@ const User = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full bg-complaints-600 hover:bg-complaints-700"
+                  className="w-full bg-complaints-600 hover:bg-complaints-700 transition-colors"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
