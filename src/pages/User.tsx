@@ -1,26 +1,14 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send, CheckCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import UserLogin from "@/components/UserLogin";
 import UserDashboard from "@/components/UserDashboard";
+import ComplaintForm from "@/components/ComplaintForm";
+import ComplaintSuccess from "@/components/ComplaintSuccess";
 
 const User = () => {
   const [user, setUser] = useState<{ name: string; password: string } | null>(null);
   const [showComplaintForm, setShowComplaintForm] = useState(false);
-  const [formData, setFormData] = useState({
-    buildingCode: "",
-    category: "",
-    complaint: ""
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     // Check if user is logged in
@@ -40,55 +28,18 @@ const User = () => {
     setShowComplaintForm(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user || !formData.buildingCode || !formData.category || !formData.complaint) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    // Simulate API call - in real app, this would connect to MySQL
-    setTimeout(() => {
-      // Store in localStorage for demo purposes
-      const complaints = JSON.parse(localStorage.getItem('complaints') || '[]');
-      const newComplaint = {
-        id: Date.now(),
-        name: user.name,
-        buildingCode: formData.buildingCode,
-        category: formData.category,
-        complaint: formData.complaint,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        response: null
-      };
-      complaints.push(newComplaint);
-      localStorage.setItem('complaints', JSON.stringify(complaints));
-      
-      setIsSubmitting(false);
-      setIsSubmitted(true);
-      
-      toast({
-        title: "Success!",
-        description: "Your complaint has been submitted successfully. You will be notified of updates.",
-      });
-    }, 1500);
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleComplaintSuccess = () => {
+    setIsSubmitted(true);
   };
 
   const resetForm = () => {
     setIsSubmitted(false);
+    setShowComplaintForm(true);
+  };
+
+  const backToDashboard = () => {
+    setIsSubmitted(false);
     setShowComplaintForm(false);
-    setFormData({ buildingCode: "", category: "", complaint: "" });
   };
 
   // If user is not logged in, show login form
@@ -99,138 +50,21 @@ const User = () => {
   // Success page after complaint submission
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-complaints-50 to-blue-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center animate-fade-in">
-          <CardHeader>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl text-green-700">Complaint Submitted!</CardTitle>
-            <CardDescription>
-              Your complaint has been received and assigned ID #{Date.now().toString().slice(-6)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-600">
-              You will receive updates on the status of your complaint via the system.
-            </p>
-            <div className="space-y-2">
-              <Button 
-                onClick={resetForm}
-                className="w-full bg-complaints-600 hover:bg-complaints-700"
-              >
-                Submit Another Complaint
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setShowComplaintForm(false)}
-              >
-                Back to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ComplaintSuccess 
+        onSubmitAnother={resetForm}
+        onBackToDashboard={backToDashboard}
+      />
     );
   }
 
   // Complaint form
   if (showComplaintForm) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-complaints-50 to-blue-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-center gap-4 mb-8">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="hover:bg-gray-50"
-                onClick={() => setShowComplaintForm(false)}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-              <h1 className="text-3xl font-bold text-gray-900">Submit Complaint</h1>
-            </div>
-
-            <Card className="animate-fade-in shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-xl">Complaint Form</CardTitle>
-                <CardDescription>
-                  Logged in as: <strong>{user.name}</strong>
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="buildingCode" className="text-sm font-medium">Building Code *</Label>
-                    <Input
-                      id="buildingCode"
-                      type="text"
-                      placeholder="e.g., HR 307"
-                      value={formData.buildingCode}
-                      onChange={(e) => handleInputChange('buildingCode', e.target.value)}
-                      className="focus:ring-2 focus:ring-complaints-500"
-                      required
-                    />
-                    <p className="text-xs text-gray-500">
-                      Please enter your building code (e.g., HR 307, BL 202)
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="category" className="text-sm font-medium">Category of Concern *</Label>
-                    <Input
-                      id="category"
-                      type="text"
-                      placeholder="e.g., Maintenance, Plumbing, Electrical, Noise, Security, etc."
-                      value={formData.category}
-                      onChange={(e) => handleInputChange('category', e.target.value)}
-                      className="focus:ring-2 focus:ring-complaints-500"
-                      required
-                    />
-                    <p className="text-xs text-gray-500">
-                      Describe the category of your concern (maintenance, plumbing, electrical, etc.)
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="complaint" className="text-sm font-medium">Complaint Details *</Label>
-                    <Textarea
-                      id="complaint"
-                      placeholder="Please describe your complaint in detail..."
-                      value={formData.complaint}
-                      onChange={(e) => handleInputChange('complaint', e.target.value)}
-                      className="focus:ring-2 focus:ring-complaints-500 min-h-[120px]"
-                      rows={5}
-                      required
-                    />
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-complaints-600 hover:bg-complaints-700 transition-colors"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Submit Complaint
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+      <ComplaintForm
+        user={user}
+        onBack={() => setShowComplaintForm(false)}
+        onSuccess={handleComplaintSuccess}
+      />
     );
   }
 
