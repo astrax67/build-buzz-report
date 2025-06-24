@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from "react";
+import AdminLogin from "@/components/AdminLogin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,7 @@ interface Complaint {
 }
 
 const Admin = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [response, setResponse] = useState("");
@@ -28,7 +29,13 @@ const Admin = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadComplaints();
+    // Check if admin is already logged in
+    const loggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+    setIsLoggedIn(loggedIn);
+    
+    if (loggedIn) {
+      loadComplaints();
+    }
   }, []);
 
   const loadComplaints = () => {
@@ -126,17 +133,41 @@ const Admin = () => {
     { label: 'Resolved', value: statusData.resolved || 0, icon: FileText, color: 'text-green-600' }
   ];
 
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    loadComplaints();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminLoggedIn');
+    setIsLoggedIn(false);
+    setComplaints([]);
+  };
+
+  if (!isLoggedIn) {
+    return <AdminLogin onLogin={handleLogin} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-8">
-          <Link to="/">
-            <Button variant="outline" size="sm" className="hover:bg-gray-50">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Link to="/">
+              <Button variant="outline" size="sm" className="hover:bg-gray-50">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Home
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={handleLogout}
+            className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+          >
+            Logout
+          </Button>
         </div>
 
         {/* Stats Cards */}

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Send, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -20,16 +19,6 @@ const User = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
-
-  const categories = [
-    "Maintenance",
-    "Plumbing", 
-    "Electrical",
-    "Noise Complaint",
-    "Security",
-    "Cleanliness",
-    "Other"
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,23 +156,19 @@ const User = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category" className="text-sm font-medium">Complaint Category *</Label>
-                  <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                    <SelectTrigger className="focus:ring-2 focus:ring-complaints-500">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border shadow-lg z-50">
-                      {categories.map((category) => (
-                        <SelectItem 
-                          key={category} 
-                          value={category}
-                          className="hover:bg-gray-100 cursor-pointer"
-                        >
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="category" className="text-sm font-medium">Category of Concern *</Label>
+                  <Input
+                    id="category"
+                    type="text"
+                    placeholder="e.g., Maintenance, Plumbing, Electrical, Noise, Security, etc."
+                    value={formData.category}
+                    onChange={(e) => handleInputChange('category', e.target.value)}
+                    className="focus:ring-2 focus:ring-complaints-500"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    Describe the category of your concern (maintenance, plumbing, electrical, etc.)
+                  </p>
                 </div>
 
                 <div className="space-y-2">
