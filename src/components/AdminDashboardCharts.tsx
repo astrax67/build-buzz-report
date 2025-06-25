@@ -15,7 +15,7 @@ const AdminDashboardCharts = ({ complaints }: AdminDashboardChartsProps) => {
   const pieData = Object.entries(categoryData).map(([category, count]) => ({
     name: category,
     value: count,
-    percentage: ((count / complaints.length) * 100).toFixed(1)
+    percentage: complaints.length > 0 ? ((Number(count) / complaints.length) * 100).toFixed(1) : '0'
   }));
 
   const statusData = complaints.reduce((acc, complaint) => {
