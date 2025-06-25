@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ interface UserDashboardProps {
   user: { name: string; password: string };
   onLogout: () => void;
   onNewComplaint: () => void;
+  onViewMessages: () => void;
 }
 
 interface Complaint {
@@ -22,7 +24,7 @@ interface Complaint {
   response: string | null;
 }
 
-const UserDashboard = ({ user, onLogout, onNewComplaint }: UserDashboardProps) => {
+const UserDashboard = ({ user, onLogout, onNewComplaint, onViewMessages }: UserDashboardProps) => {
   const [userComplaints, setUserComplaints] = useState<Complaint[]>([]);
 
   useEffect(() => {
@@ -65,9 +67,16 @@ const UserDashboard = ({ user, onLogout, onNewComplaint }: UserDashboardProps) =
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Welcome, {user.name}!</h1>
-              <p className="text-gray-600">Manage your complaints and view responses</p>
+              <p className="text-gray-600">Manage your complaints and communicate with admin</p>
             </div>
             <div className="flex gap-4">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={onViewMessages}
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Messages
+              </Button>
               <Button 
                 className="bg-complaints-600 hover:bg-complaints-700"
                 onClick={onNewComplaint}
@@ -87,7 +96,7 @@ const UserDashboard = ({ user, onLogout, onNewComplaint }: UserDashboardProps) =
               <CardHeader>
                 <CardTitle>Your Complaints</CardTitle>
                 <CardDescription>
-                  Track the status of your submitted complaints
+                  Track the status of your submitted complaints and communicate with admin
                 </CardDescription>
               </CardHeader>
               <CardContent>

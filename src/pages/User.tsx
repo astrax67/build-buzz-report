@@ -2,13 +2,13 @@
 import { useState, useEffect } from "react";
 import UserLogin from "@/components/UserLogin";
 import UserDashboard from "@/components/UserDashboard";
+import UserMessages from "@/components/UserMessages";
 import ComplaintForm from "@/components/ComplaintForm";
 import ComplaintSuccess from "@/components/ComplaintSuccess";
 
 const User = () => {
   const [user, setUser] = useState<{ name: string; password: string } | null>(null);
-  const [showComplaintForm, setShowComplaintForm] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'complaint-form' | 'complaint-success' | 'messages'>('dashboard');
 
   useEffect(() => {
     // Check if user is logged in
@@ -20,26 +20,25 @@ const User = () => {
 
   const handleLogin = (userData: { name: string; password: string }) => {
     setUser(userData);
+    setCurrentView('dashboard');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('userLoggedIn');
     setUser(null);
-    setShowComplaintForm(false);
+    setCurrentView('dashboard');
   };
 
   const handleComplaintSuccess = () => {
-    setIsSubmitted(true);
+    setCurrentView('complaint-success');
   };
 
   const resetForm = () => {
-    setIsSubmitted(false);
-    setShowComplaintForm(true);
+    setCurrentView('complaint-form');
   };
 
   const backToDashboard = () => {
-    setIsSubmitted(false);
-    setShowComplaintForm(false);
+    setCurrentView('dashboard');
   };
 
   // If user is not logged in, show login form
@@ -47,35 +46,43 @@ const User = () => {
     return <UserLogin onLogin={handleLogin} />;
   }
 
-  // Success page after complaint submission
-  if (isSubmitted) {
-    return (
-      <ComplaintSuccess 
-        onSubmitAnother={resetForm}
-        onBackToDashboard={backToDashboard}
-      />
-    );
+  // Handle different views
+  switch (currentView) {
+    case 'complaint-success':
+      return (
+        <ComplaintSuccess 
+          onSubmitAnother={resetForm}
+          onBackToDashboard={backToDashboard}
+        />
+      );
+    
+    case 'complaint-form':
+      return (
+        <ComplaintForm
+          user={user}
+          onBack={backToDashboard}
+          onSuccess={handleComplaintSuccess}
+        />
+      );
+    
+    case 'messages':
+      return (
+        <UserMessages
+          user={user}
+          onBack={backToDashboard}
+        />
+      );
+    
+    default:
+      return (
+        <UserDashboard 
+          user={user} 
+          onLogout={handleLogout}
+          onNewComplaint={() => setCurrentView('complaint-form')}
+          onViewMessages={() => setCurrentView('messages')}
+        />
+      );
   }
-
-  // Complaint form
-  if (showComplaintForm) {
-    return (
-      <ComplaintForm
-        user={user}
-        onBack={() => setShowComplaintForm(false)}
-        onSuccess={handleComplaintSuccess}
-      />
-    );
-  }
-
-  // Show user dashboard
-  return (
-    <UserDashboard 
-      user={user} 
-      onLogout={handleLogout}
-      onNewComplaint={() => setShowComplaintForm(true)}
-    />
-  );
 };
 
 export default User;

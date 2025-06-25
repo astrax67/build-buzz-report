@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import AdminLogin from "@/components/AdminLogin";
+import AdminMessages from "@/components/AdminMessages";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Users, FileText, Send, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Users, FileText, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
@@ -22,10 +23,8 @@ interface Complaint {
 
 const Admin = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'messages'>('dashboard');
   const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
-  const [response, setResponse] = useState("");
-  const [isSubmittingResponse, setIsSubmittingResponse] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,43 +62,6 @@ const Admin = () => {
       title: "Status Updated",
       description: `Complaint status changed to ${newStatus.replace('-', ' ')}`,
     });
-  };
-
-  const handleResponseSubmit = async () => {
-    if (!selectedComplaint || !response.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a response message",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmittingResponse(true);
-    
-    setTimeout(() => {
-      const updatedComplaints = complaints.map(complaint => 
-        complaint.id === selectedComplaint.id 
-          ? { ...complaint, response: response.trim(), status: 'resolved' as const }
-          : complaint
-      );
-      
-      setComplaints(updatedComplaints);
-      localStorage.setItem('complaints', JSON.stringify(updatedComplaints));
-      setResponse("");
-      setSelectedComplaint(null);
-      setIsSubmittingResponse(false);
-      
-      toast({
-        title: "Response Sent",
-        description: "Your response has been sent to the complainant successfully.",
-      });
-    }, 1000);
-  };
-
-  const closeModal = () => {
-    setSelectedComplaint(null);
-    setResponse("");
   };
 
   // Calculate analytics data
@@ -142,10 +104,15 @@ const Admin = () => {
     localStorage.removeItem('adminLoggedIn');
     setIsLoggedIn(false);
     setComplaints([]);
+    setCurrentView('dashboard');
   };
 
   if (!isLoggedIn) {
     return <AdminLogin onLogin={handleLogin} />;
+  }
+
+  if (currentView === 'messages') {
+    return <AdminMessages onBack={() => setCurrentView('dashboard')} />;
   }
 
   return (
@@ -161,13 +128,22 @@ const Admin = () => {
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={handleLogout}
-            className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
-          >
-            Logout
-          </Button>
+          <div className="flex gap-4">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => setCurrentView('messages')}
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Messages
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+            >
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -253,11 +229,11 @@ const Admin = () => {
           </Card>
         </div>
 
-        {/* Complaints List */}
+        {/* Quick Status Overview */}
         <Card className="animate-fade-in">
           <CardHeader>
-            <CardTitle>All Complaints</CardTitle>
-            <CardDescription>Manage and respond to complaints</CardDescription>
+            <CardTitle>Recent Complaints Overview</CardTitle>
+            <CardDescription>Quick status management for recent complaints</CardDescription>
           </CardHeader>
           <CardContent>
             {complaints.length === 0 ? (
@@ -268,20 +244,14 @@ const Admin = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {complaints.map((complaint) => (
+                {complaints.slice(0, 5).map((complaint) => (
                   <div key={complaint.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="font-semibold text-lg text-gray-900">{complaint.name}</h3>
                         <p className="text-gray-600">{complaint.buildingCode} • {complaint.category}</p>
                         <p className="text-sm text-gray-500">
-                          Submitted on {new Date(complaint.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {new Date(complaint.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                       <Badge className={`${getStatusColor(complaint.status)} border`}>
@@ -290,17 +260,10 @@ const Admin = () => {
                     </div>
                     
                     <div className="mb-4">
-                      <p className="text-gray-700 bg-gray-50 p-3 rounded border-l-4 border-gray-300">
+                      <p className="text-gray-700 bg-gray-50 p-3 rounded border-l-4 border-gray-300 truncate">
                         {complaint.complaint}
                       </p>
                     </div>
-                    
-                    {complaint.response && (
-                      <div className="bg-green-50 border border-green-200 rounded p-3 mb-4">
-                        <p className="text-sm font-medium text-green-800 mb-1">Admin Response:</p>
-                        <p className="text-green-700">{complaint.response}</p>
-                      </div>
-                    )}
                     
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -309,7 +272,7 @@ const Admin = () => {
                         onClick={() => handleStatusUpdate(complaint.id, 'pending')}
                         className="hover:bg-yellow-50 hover:border-yellow-300"
                       >
-                        Mark Pending
+                        Pending
                       </Button>
                       <Button
                         size="sm"
@@ -317,7 +280,7 @@ const Admin = () => {
                         onClick={() => handleStatusUpdate(complaint.id, 'in-progress')}
                         className="hover:bg-blue-50 hover:border-blue-300"
                       >
-                        Mark In Progress
+                        In Progress
                       </Button>
                       <Button
                         size="sm"
@@ -325,92 +288,26 @@ const Admin = () => {
                         onClick={() => handleStatusUpdate(complaint.id, 'resolved')}
                         className="hover:bg-green-50 hover:border-green-300"
                       >
-                        Mark Resolved
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-complaints-600 hover:bg-complaints-700"
-                        onClick={() => setSelectedComplaint(complaint)}
-                      >
-                        <Send className="w-4 h-4 mr-1" />
-                        Send Response
+                        Resolved
                       </Button>
                     </div>
                   </div>
                 ))}
+                {complaints.length > 5 && (
+                  <div className="text-center">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setCurrentView('messages')}
+                      className="mt-4"
+                    >
+                      View All Complaints & Messages
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
-
-        {/* Response Modal */}
-        {selectedComplaint && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-lg bg-white">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Send Response</CardTitle>
-                  <CardDescription>
-                    Responding to {selectedComplaint.name} ({selectedComplaint.buildingCode})
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={closeModal}
-                  className="hover:bg-gray-100"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-gray-50 p-3 rounded border-l-4 border-gray-300">
-                  <p className="text-sm font-medium text-gray-600 mb-1">Original Complaint:</p>
-                  <p className="text-gray-800">{selectedComplaint.complaint}</p>
-                </div>
-                <div>
-                  <label htmlFor="response" className="block text-sm font-medium text-gray-700 mb-2">
-                    Response Message
-                  </label>
-                  <Textarea
-                    id="response"
-                    placeholder="Type your response to the complainant..."
-                    value={response}
-                    onChange={(e) => setResponse(e.target.value)}
-                    className="focus:ring-2 focus:ring-complaints-500 min-h-[100px]"
-                    rows={4}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleResponseSubmit}
-                    disabled={isSubmittingResponse || !response.trim()}
-                    className="bg-complaints-600 hover:bg-complaints-700 flex-1"
-                  >
-                    {isSubmittingResponse ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Send Response
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={closeModal}
-                    className="hover:bg-gray-50"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
     </div>
   );
