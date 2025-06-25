@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageSquare, ArrowLeft } from "lucide-react";
+import { Send, MessageSquare, ArrowLeft, Headphones, Clock, CheckCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -14,6 +14,7 @@ interface Message {
   message: string;
   timestamp: string;
   senderName: string;
+  read?: boolean;
 }
 
 interface Complaint {
@@ -39,6 +40,16 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
 
+  // Auto-refresh messages every 3 seconds when viewing a conversation
+  useEffect(() => {
+    if (selectedComplaint) {
+      const interval = setInterval(() => {
+        loadMessages(selectedComplaint.id);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedComplaint]);
+
   useEffect(() => {
     loadUserComplaints();
   }, [user.name]);
@@ -61,6 +72,24 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
     setMessages(complaintMessages);
   };
 
+  const getUnreadCount = (complaintId: number) => {
+    const allMessages = JSON.parse(localStorage.getItem('messages') || '[]');
+    const complaintMessages = allMessages.filter((msg: Message) => 
+      msg.complaintId === complaintId && msg.sender === 'admin' && !msg.read
+    );
+    return complaintMessages.length;
+  };
+
+  const markMessagesAsRead = (complaintId: number) => {
+    const allMessages = JSON.parse(localStorage.getItem('messages') || '[]');
+    const updatedMessages = allMessages.map((msg: Message) => 
+      msg.complaintId === complaintId && msg.sender === 'admin' 
+        ? { ...msg, read: true }
+        : msg
+    );
+    localStorage.setItem('messages', JSON.stringify(updatedMessages));
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedComplaint) return;
 
@@ -74,7 +103,8 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
         sender: 'user',
         message: newMessage.trim(),
         timestamp: new Date().toISOString(),
-        senderName: user.name
+        senderName: user.name,
+        read: false
       };
       
       allMessages.push(message);
@@ -86,7 +116,7 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
       
       toast({
         title: "Message Sent",
-        description: "Your message has been sent to the admin.",
+        description: "Your message has been sent to customer support.",
       });
     }, 1000);
   };
@@ -101,6 +131,9 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
   };
 
   if (selectedComplaint) {
+    // Mark messages as read when viewing conversation
+    markMessagesAsRead(selectedComplaint.id);
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-complaints-50 to-blue-50">
         <div className="container mx-auto px-4 py-8">
@@ -112,11 +145,11 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
                 onClick={() => setSelectedComplaint(null)}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Complaints
+                Back to My Cases
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Conversation</h1>
-                <p className="text-gray-600">{selectedComplaint.category} - {selectedComplaint.buildingCode}</p>
+                <h1 className="text-2xl font-bold">Customer Support Chat</h1>
+                <p className="text-gray-600">Case #{selectedComplaint.id} - {selectedComplaint.category}</p>
               </div>
             </div>
 
@@ -124,9 +157,12 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">Original Complaint</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Headphones className="w-5 h-5" />
+                      Your Support Case
+                    </CardTitle>
                     <CardDescription>
-                      Submitted on {new Date(selectedComplaint.createdAt).toLocaleDateString()}
+                      Submitted on {new Date(selectedComplaint.createdAt).toLocaleDateString()} • {selectedComplaint.buildingCode}
                     </CardDescription>
                   </div>
                   <Badge className={getStatusColor(selectedComplaint.status)}>
@@ -135,63 +171,90 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 bg-gray-50 p-3 rounded">{selectedComplaint.complaint}</p>
+                <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-complaints-500">
+                  <h4 className="font-semibold mb-2">Your Original Issue:</h4>
+                  <p className="text-gray-700">{selectedComplaint.complaint}</p>
+                </div>
               </CardContent>
             </Card>
 
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>Messages</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Live Support Chat
+                  <Badge variant="secondary" className="ml-2">
+                    Connected
+                  </Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 max-h-96 overflow-y-auto mb-4">
+                <div className="space-y-4 max-h-96 overflow-y-auto mb-4 bg-gray-50 p-4 rounded-lg">
                   {messages.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">No messages yet. Start the conversation!</p>
+                    <div className="text-center py-8">
+                      <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No messages yet. Start the conversation with our support team!</p>
+                    </div>
                   ) : (
                     messages.map((message) => (
                       <div
                         key={message.id}
                         className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                            message.sender === 'user'
-                              ? 'bg-complaints-600 text-white'
-                              : 'bg-gray-200 text-gray-800'
-                          }`}
-                        >
-                          <p className="text-sm font-medium mb-1">
-                            {message.sender === 'user' ? 'You' : 'Admin'}
-                          </p>
-                          <p>{message.message}</p>
-                          <p className="text-xs opacity-75 mt-1">
-                            {new Date(message.timestamp).toLocaleString()}
-                          </p>
+                        <div className="max-w-xs lg:max-w-md">
+                          <div
+                            className={`px-4 py-3 rounded-lg ${
+                              message.sender === 'user'
+                                ? 'bg-complaints-600 text-white'
+                                : 'bg-white text-gray-800 border'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-sm font-medium">
+                                {message.sender === 'user' ? 'You' : 'Customer Support'}
+                              </p>
+                              {message.sender === 'user' && (
+                                <CheckCheck className="w-3 h-3 opacity-75" />
+                              )}
+                            </div>
+                            <p className="text-sm">{message.message}</p>
+                            <div className="flex items-center gap-1 mt-2">
+                              <Clock className="w-3 h-3 opacity-75" />
+                              <p className="text-xs opacity-75">
+                                {new Date(message.timestamp).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))
                   )}
                 </div>
 
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="Type your message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    className="flex-1"
-                    rows={2}
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={isSending || !newMessage.trim()}
-                    className="bg-complaints-600 hover:bg-complaints-700"
-                  >
-                    {isSending ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </Button>
+                <div className="border-t pt-4">
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder="Type your message to customer support..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      className="flex-1"
+                      rows={2}
+                    />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={isSending || !newMessage.trim()}
+                      className="bg-complaints-600 hover:bg-complaints-700 self-end"
+                    >
+                      {isSending ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Our support team typically responds within minutes • Auto-refreshing
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -210,45 +273,72 @@ const UserMessages = ({ user, onBack }: UserMessagesProps) => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
-            <h1 className="text-3xl font-bold">Your Conversations</h1>
+            <div>
+              <h1 className="text-3xl font-bold">Customer Support Portal</h1>
+              <p className="text-gray-600">Get help with your complaints and issues</p>
+            </div>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Select a Complaint to View Conversation</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Headphones className="w-5 h-5" />
+                Your Support Cases
+              </CardTitle>
               <CardDescription>
-                Click on any complaint to start or continue the conversation with admin
+                Click on any case to chat with our customer support team
               </CardDescription>
             </CardHeader>
             <CardContent>
               {complaints.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No complaints submitted yet.</p>
+                  <p className="text-gray-500">No support cases yet.</p>
+                  <p className="text-gray-400 text-sm">Submit a complaint first to start getting support</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {complaints.map((complaint) => (
-                    <div
-                      key={complaint.id}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setSelectedComplaint(complaint)}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-semibold">{complaint.category}</h3>
-                          <p className="text-sm text-gray-600">{complaint.buildingCode}</p>
+                  {complaints.map((complaint) => {
+                    const unreadCount = getUnreadCount(complaint.id);
+                    return (
+                      <div
+                        key={complaint.id}
+                        className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-white hover:bg-gray-50"
+                        onClick={() => setSelectedComplaint(complaint)}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">Case #{complaint.id} - {complaint.category}</h3>
+                              {unreadCount > 0 && (
+                                <Badge variant="destructive" className="text-xs">
+                                  {unreadCount} new replies
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">{complaint.buildingCode}</p>
+                          </div>
+                          <Badge className={getStatusColor(complaint.status)}>
+                            {complaint.status.replace('-', ' ').toUpperCase()}
+                          </Badge>
                         </div>
-                        <Badge className={getStatusColor(complaint.status)}>
-                          {complaint.status.replace('-', ' ').toUpperCase()}
-                        </Badge>
+                        <p className="text-gray-700 text-sm truncate bg-gray-50 p-2 rounded">
+                          {complaint.complaint}
+                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(complaint.createdAt).toLocaleDateString()}
+                          </p>
+                          {unreadCount > 0 && (
+                            <p className="text-xs text-blue-600 font-medium">
+                              Support team replied • Click to view
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-gray-700 text-sm truncate">{complaint.complaint}</p>
-                      <p className="text-xs text-gray-500 mt-2">
-                        {new Date(complaint.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
